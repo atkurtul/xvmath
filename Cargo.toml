@@ -13,3 +13,7 @@ paste = "0.1.18"
 
 [lib]
 name = "xvmath"
+
+[[bin]]
+name = "xvmath"
+path = "src/main.rs"
