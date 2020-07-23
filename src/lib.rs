@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![macro_use]
 #![allow(unused_macros)]
-#![cfg(target_feature = "fma")]
+//#![cfg(target_feature = "fma")]
 
 #[inline(always)]
 const fn shuffle_mask(x : i32, y : i32, z : i32, w : i32) -> i32{
