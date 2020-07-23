@@ -8,9 +8,6 @@ license = "MIT"
 repository = "https://github.com/atkurtul/xvmath"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
-paste = "0.1.18"
-
 [lib]
 name = "xvmath"
 
@@ -19,3 +16,4 @@ name = "xvmath"
 path = "src/main.rs"
 
 [dependencies.xvmath]
+paste = "0.1.18"

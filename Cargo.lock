@@ -38,6 +38,5 @@ dependencies = [
 name = "xvmath"
 version = "0.1.23"
 dependencies = [
- "paste",
  "xvmath 0.1.2",
 ]
