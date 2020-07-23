@@ -1,6 +1,6 @@
 [package]
 name = "xvmath"
-version = "0.1.0-beta.2"
+version = "0.1.1"
 authors = ["atil"]
 edition = "2018"
 description = "simd vector math library"
