@@ -10,11 +10,13 @@ const fn shuffle_mask(x : i32, y : i32, z : i32, w : i32) -> i32{
 
 macro_rules! shuff4 {
     ($a:expr, $b:expr, $x:expr, $y:expr, $z:expr, $w:expr) => {
+    #[target_feature(enable="fma")]
         unsafe { vec::new_xmm(_mm_shuffle_ps($a.load(), $b.load(), shuffle_mask($x, $y, $z, $w))) }
     };
 }
 macro_rules! perm4 {
     ($a:expr,$x:expr, $y:expr, $z:expr, $w:expr) => {
+        #[target_feature(enable="fma")]
         unsafe { vec::new_xmm(_mm_permute_ps($a.load(), shuffle_mask($x, $y, $z, $w))) }
     };
 }
@@ -68,6 +70,7 @@ macro_rules! def_fn {
         paste::item! {
             #[inline(always)]
             pub fn [<$name>](self, $($args : vec,)* ) -> vec {
+                #[target_feature(enable="fma")]
                 unsafe { vec::new_xmm([<_mm_ $name _ps>](self.load(), $($args.load(),)*)) }
             }
         }
@@ -89,18 +92,22 @@ pub struct mat(vec, vec, vec, vec);
 impl vec {
     #[inline(always)]
     pub fn new_xmm(xmm : __m128) -> vec {
+        #[target_feature(enable="fma")]
         unsafe { *(&xmm as *const __m128 as *const vec) }
     }
     #[inline(always)]
     pub fn load(&self) -> __m128 {
+        #[target_feature(enable="fma")]
         unsafe { _mm_load_ps(&self.0) }
     }
     #[inline(always)]
     pub fn new(x : f32, y : f32, z : f32, w : f32) -> vec {
+        #[target_feature(enable="fma")]
         unsafe { vec::new_xmm(_mm_setr_ps(x, y, z, w)) }
     }
     #[inline(always)]
     pub fn dot(self, b : vec) -> vec {
+        #[target_feature(enable="fma")]
         unsafe { vec::new_xmm(_mm_dp_ps(self.load(), b.load(), 255)) }
     }
     def_fn!(add { b });
