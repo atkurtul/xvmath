@@ -17,6 +17,7 @@ macro_rules! perm4 {
         unsafe { vec::new_xmm(_mm_permute_ps($a.load(), shuffle_mask($x, $y, $z, $w))) }
     };
 }
+
 macro_rules! make_swizz {
     ($x:ident, $y:ident, $z:ident, $w:ident, $i:literal, $j:literal, $k:literal, $s:literal) => {
         paste::item! { 
