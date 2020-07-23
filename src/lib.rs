@@ -76,7 +76,7 @@ pub struct vec(f32,f32,f32,f32);
 
 #[repr(C, align(32))]
 #[derive(Debug, Default, Copy, Clone)]
-struct mat(vec, vec, vec, vec);
+pub struct mat(vec, vec, vec, vec);
 
 impl vec {
     pub fn new_xmm(xmm : __m128) -> vec {
@@ -150,7 +150,7 @@ impl std::ops::BitOr for vec {
 }
 
 impl mat {
-    fn rotz(ang : f32) -> mat {
+    pub fn rotz(ang : f32) -> mat {
         let c = ang.cos();
         let s = ang.sin();
         let x = vec::new(c, -s, 0., 0.);
@@ -159,7 +159,7 @@ impl mat {
         let w = vec::new(0., 0., 0., 1.);
         mat(x, y, z, w)
     }
-    fn inv(&self) -> mat {
+    pub fn inv(&self) -> mat {
         let m = self;
         let m0 = m.0.movelh(m.1);
         let m1 = m.1.movehl(m.0);
@@ -179,7 +179,7 @@ impl mat {
         let ww = ww * det_m;
         mat(xx.shuff_3131(yy), xx.shuff_2020(yy), zz.shuff_3131(ww), zz.shuff_2020(ww))
     }  
-    fn tpos(&self) -> mat {
+    pub fn tpos(&self) -> mat {
         let m0 = self.0.unpacklo(self.1);
         let m2 = self.2.unpacklo(self.3);
         let m1 = self.0.unpackhi(self.1);
