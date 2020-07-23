@@ -1,5 +1,0 @@
-/target
-/.vscode
-src/main.rs
-.gitignore
-push.sh
