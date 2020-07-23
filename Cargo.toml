@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["atil"]
 edition = "2018"
 description = "simd vector math library"
-license = "idk how to license"
+license = "MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
