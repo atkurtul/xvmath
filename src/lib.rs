@@ -2,9 +2,11 @@
 #![macro_use]
 #![allow(unused_macros)]
 
+#[inline(always)]
 const fn shuffle_mask(x : i32, y : i32, z : i32, w : i32) -> i32{
     x | (y << 2) | (z << 4) | (w << 6)
 }
+
 macro_rules! shuff4 {
     ($a:expr, $b:expr, $x:expr, $y:expr, $z:expr, $w:expr) => {
         unsafe { vec::new_xmm(_mm_shuffle_ps($a.load(), $b.load(), shuffle_mask($x, $y, $z, $w))) }
@@ -18,8 +20,11 @@ macro_rules! perm4 {
 macro_rules! make_swizz {
     ($x:ident, $y:ident, $z:ident, $w:ident, $i:literal, $j:literal, $k:literal, $s:literal) => {
         paste::item! { 
+            #[inline(always)]
             pub fn [<$x $y $z $w>](self) -> vec {{ perm4!(self, $i, $j, $k, $s) } } 
+            #[inline(always)]
             pub fn [<shuff_ $x $y $z $w>](self, r : vec) -> vec {{ shuff4!(self, r, $i, $j, $k, $s) } }
+            #[inline(always)]
             pub fn [<shuff_ $i $j $k $s>](self, r : vec) -> vec {{ shuff4!(self, r, $i, $j, $k, $s) } }
         }
     };
@@ -59,6 +64,7 @@ macro_rules! make_swizz1 {
 macro_rules! def_fn {
     ($name:ident{ $($args:ident),* }) => {
         paste::item! {
+            #[inline(always)]
             pub fn [<$name>](self, $($args : vec,)* ) -> vec {
                 unsafe { vec::new_xmm([<_mm_ $name _ps>](self.load(), $($args.load(),)*)) }
             }
@@ -79,15 +85,19 @@ pub struct vec(f32,f32,f32,f32);
 pub struct mat(vec, vec, vec, vec);
 
 impl vec {
+    #[inline(always)]
     pub fn new_xmm(xmm : __m128) -> vec {
         unsafe { *(&xmm as *const __m128 as *const vec) }
     }
+    #[inline(always)]
     pub fn load(&self) -> __m128 {
         unsafe { _mm_load_ps(&self.0) }
     }
+    #[inline(always)]
     pub fn new(x : f32, y : f32, z : f32, w : f32) -> vec {
         unsafe { vec::new_xmm(_mm_setr_ps(x, y, z, w)) }
     }
+    #[inline(always)]
     pub fn dot(self, b : vec) -> vec {
         unsafe { vec::new_xmm(_mm_dp_ps(self.load(), b.load(), 255)) }
     }
@@ -112,23 +122,28 @@ impl vec {
 
 impl std::ops::Add for vec {
     type Output = vec;
+    #[inline(always)]
     fn add(self, r : vec) -> vec { self.add(r) }
 }
 impl std::ops::Sub for vec {
     type Output = vec;
+    #[inline(always)]
     fn sub(self, r : vec) -> vec { self.sub(r) }
 }
 impl std::ops::Mul for vec {
     type Output = vec;
+    #[inline(always)]
     fn mul(self, r : vec) -> vec { self.mul(r) }
 }
 impl std::ops::Div for vec {
     type Output = vec;
+    #[inline(always)]
     fn div(self, r : vec) -> vec { self.div(r) }
 }
 
 impl std::ops::Mul<mat> for vec {
     type Output = vec;
+    #[inline(always)]
     fn mul(self, m : mat) -> vec { 
         self.xxxx().fmadd(m.0, self.yyyy().fmadd(m.1, self.zzzz().fmadd(m.2, self.wwww() * m.3)))
     }
@@ -136,16 +151,19 @@ impl std::ops::Mul<mat> for vec {
 
 impl std::ops::BitXor for vec {
     type Output = vec;
+    #[inline(always)]
     fn bitxor(self, r : vec) -> vec { self.xor(r) }
 }
 
 impl std::ops::BitAnd for vec {
     type Output = vec;
+    #[inline(always)]
     fn bitand(self, r : vec) -> vec { self.and(r) }
 }
 
 impl std::ops::BitOr for vec {
     type Output = vec;
+    #[inline(always)]
     fn bitor(self, r : vec) -> vec { self.or(r) }
 }
 
@@ -159,6 +177,7 @@ impl mat {
         let w = vec::new(0., 0., 0., 1.);
         mat(x, y, z, w)
     }
+    #[inline(always)]
     pub fn inv(&self) -> mat {
         let m = self;
         let m0 = m.0.movelh(m.1);
@@ -179,6 +198,7 @@ impl mat {
         let ww = ww * det_m;
         mat(xx.shuff_3131(yy), xx.shuff_2020(yy), zz.shuff_3131(ww), zz.shuff_2020(ww))
     }  
+    #[inline(always)]
     pub fn tpos(&self) -> mat {
         let m0 = self.0.unpacklo(self.1);
         let m2 = self.2.unpacklo(self.3);
@@ -195,15 +215,18 @@ impl mat {
 
 impl std::ops::Add for mat {
     type Output = mat;
+    #[inline(always)]
     fn add(self, r : mat) -> mat {  mat(self.0 + r.1, self.1 + r.1, self.2 + r.2, self.3 + r.3) }
 }
 impl std::ops::Sub for mat {
     type Output = mat;
+    #[inline(always)]
     fn sub(self, r : mat) -> mat {  mat(self.0 - r.1, self.1 - r.1, self.2 - r.2, self.3 - r.3) }
 }
 
 impl std::ops::Mul for mat {
     type Output = mat;
+    #[inline(always)]
     fn mul(self, r : mat) -> mat {
         mat(self.0 * r, self.1 * r, self.2 * r, self.3 * r)
     }
@@ -211,6 +234,7 @@ impl std::ops::Mul for mat {
 
 impl std::ops::Mul<vec> for mat {
     type Output = vec;
+    #[inline(always)]
     fn mul(self, r : vec) -> vec {
         r * self.tpos()
     }
