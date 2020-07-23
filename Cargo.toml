@@ -15,5 +15,5 @@ name = "xvmath"
 name = "xvmath"
 path = "src/main.rs"
 
-[dependencies.xvmath]
+[dependencies]
 paste = "0.1.18"
