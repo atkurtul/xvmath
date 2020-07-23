@@ -1,6 +1,6 @@
 [package]
 name = "xvmath"
-version = "0.1.2"
+version = "0.1.23"
 authors = ["atil"]
 edition = "2018"
 description = "simd vector math library"
@@ -13,3 +13,8 @@ paste = "0.1.18"
 
 [lib]
 name = "xvmath"
+
+
+[[bin]]
+name = "xvmath"
+path = "src/main.rs"
