@@ -27,6 +27,13 @@ macro_rules! blend {
     };
 }
 
+macro_rules! cmp_ps {
+    ($a:expr, $b:expr, $imm8:expr) => {
+        #[target_feature(enable="fma")]
+        unsafe { vec::new_xmm(_mm_cmp_ps($a.load(), $b.load(), $imm8)) }
+    };
+}
+
 macro_rules! make_swizz {
     ($x:ident, $y:ident, $z:ident, $w:ident, $i:literal, $j:literal, $k:literal, $s:literal) => {
         paste::item! { 
@@ -131,6 +138,7 @@ impl vec {
     def_fn!(xor { b });
     def_fn!(and { b });
     def_fn!(or { b });
+    def_fn!(andnot { b });
     def_fn!(movelh { b });
     def_fn!(movehl { b });
     def_fn!(unpacklo { b });
@@ -164,13 +172,34 @@ impl vec {
         (r - self).fmadd(vec::newss(t), self)
     }
 
-    // #[inline(always)]
-    // pub fn qlerp(self, r : vec, t : f32) -> vec {
-    //     if _mm_movemask_ps(a.dot(b) >= _mm_setzero_ps()) {
-    //         return a.lerp(b, t).norm();
-    //     }
-    //     vec::newss(t).fmadd(a + b, a).norm()
-    // }
+    #[inline(always)]
+    pub fn debranch(a : vec, b : vec, c : vec) -> vec {
+        (c & a) | c.andnot(b)
+    }
+
+    #[inline(always)]
+    pub fn qlerp(self, r : vec, t : f32) -> vec {        
+        let t = vec::newss(t);
+        vec::debranch((r - self).fmadd(t, self), t.fmadd(self + r, self), self.dot(r).ge(vec::zero()))
+    }
+
+    pub fn zero() -> vec{
+        unsafe { vec::new_xmm(_mm_setzero_ps()) }
+    }
+
+    #[inline(always)] pub fn ge(self, r : vec) -> vec { cmp_ps!(self, r, _CMP_GE_OQ) }
+    #[inline(always)] pub fn nge(self, r : vec) -> vec { cmp_ps!(self, r, _CMP_NGE_UQ) }
+    #[inline(always)] pub fn gt(self, r : vec) -> vec { cmp_ps!(self, r, _CMP_GT_OQ) }
+    #[inline(always)] pub fn ngt(self, r : vec) -> vec { cmp_ps!(self, r, _CMP_NGT_UQ) }
+
+    #[inline(always)] pub fn le(self, r : vec) -> vec { cmp_ps!(self, r, _CMP_LE_OQ) }
+    #[inline(always)] pub fn nle(self, r : vec) -> vec { cmp_ps!(self, r, _CMP_NLE_UQ) }
+    #[inline(always)] pub fn lt(self, r : vec) -> vec { cmp_ps!(self, r, _CMP_LT_OQ) }
+    #[inline(always)] pub fn nlt(self, r : vec) -> vec { cmp_ps!(self, r, _CMP_NLT_UQ) }
+
+    #[inline(always)] pub fn eq(self, r : vec) -> vec { cmp_ps!(self, r, _CMP_EQ_UQ) }
+    #[inline(always)] pub fn neq(self, r : vec) -> vec { cmp_ps!(self, r, _CMP_NEQ_UQ) }
+
 }
 
 impl std::ops::Add for vec {
@@ -259,6 +288,7 @@ impl std::ops::BitOr<f32> for vec {
     #[inline(always)]
     fn bitor(self, r : f32) -> vec { self.or(vec::newss(r)) }
 }
+
 
 impl mat {
     #[inline(always)]

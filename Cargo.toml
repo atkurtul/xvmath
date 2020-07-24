@@ -11,6 +11,9 @@ repository = "https://github.com/atkurtul/xvmath"
 [lib]
 name = "xvmath"
 
-
 [dependencies]
 paste = "0.1.18"
+
+[[bin]]
+name = "xvmath"
+path = "src/main.rs"
