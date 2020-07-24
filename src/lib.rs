@@ -158,6 +158,19 @@ impl vec {
         #[target_feature(enable="fma")]
         unsafe { vec::new_xmm(_mm_castsi128_ps(_mm_setr_epi32(x as _, y as _, z as _, w as _))) }
     }
+
+    #[inline(always)]
+    pub fn lerp(self, r : vec, t : f32) -> vec {
+        (r - self).fmadd(vec::newss(t), self)
+    }
+
+    // #[inline(always)]
+    // pub fn qlerp(self, r : vec, t : f32) -> vec {
+    //     if _mm_movemask_ps(a.dot(b) >= _mm_setzero_ps()) {
+    //         return a.lerp(b, t).norm();
+    //     }
+    //     vec::newss(t).fmadd(a + b, a).norm()
+    // }
 }
 
 impl std::ops::Add for vec {
@@ -308,7 +321,7 @@ impl mat {
         let w = vec::new(0., 0., 0., 1.);
         mat(x, y, z, w)
     }
-      
+    
 }
 
 impl std::ops::Add for mat {
