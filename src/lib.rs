@@ -5,7 +5,7 @@
 
 #[inline(always)]
 const fn shuffle_mask(x : i32, y : i32, z : i32, w : i32) -> i32{
-    x | (y << 2) | (z << 4) | (w << 6)
+    x | (y << 2) | (z << 4) | (w << 6) // >>
 }
 
 macro_rules! shuff4 {
@@ -15,9 +15,15 @@ macro_rules! shuff4 {
     };
 }
 macro_rules! perm4 {
-    ($a:expr,$x:expr, $y:expr, $z:expr, $w:expr) => {
+    ($a:expr, $x:expr, $y:expr, $z:expr, $w:expr) => {
         #[target_feature(enable="fma")]
         unsafe { vec::new_xmm(_mm_permute_ps($a.load(), shuffle_mask($x, $y, $z, $w))) }
+    };
+}
+
+macro_rules! blend {
+    ($a:expr, $b:expr, $imm8:expr) => {
+        unsafe { vec::new_xmm(_mm_blend_ps($a.load(), $b.load(), $imm8)) }
     };
 }
 
@@ -83,11 +89,11 @@ use core::arch::x86_64::*;
 
 #[repr(C, align(16))]
 #[derive(Debug, Copy, Clone, Default)]
-pub struct vec(f32,f32,f32,f32);
+pub struct vec(pub f32, pub f32, pub f32, pub f32);
 
 #[repr(C, align(32))]
 #[derive(Debug, Default, Copy, Clone)]
-pub struct mat(vec, vec, vec, vec);
+pub struct mat(pub vec, pub vec, pub vec, pub vec);
 
 impl vec {
     #[inline(always)]
@@ -106,10 +112,18 @@ impl vec {
         unsafe { vec::new_xmm(_mm_setr_ps(x, y, z, w)) }
     }
     #[inline(always)]
+    pub fn newss(x : f32) -> vec {
+        #[target_feature(enable="fma")]
+        unsafe { vec::new_xmm(_mm_set_ps1(x)) }
+    }
+
+    #[inline(always)]
     pub fn dot(self, b : vec) -> vec {
         #[target_feature(enable="fma")]
         unsafe { vec::new_xmm(_mm_dp_ps(self.load(), b.load(), 255)) }
     }
+    def_fn!(sqrt { });
+    def_fn!(rsqrt { });
     def_fn!(add { b });
     def_fn!(sub { b });
     def_fn!(mul { b });
@@ -126,7 +140,24 @@ impl vec {
     def_fn!(fnmadd { b, c });
     def_fn!(fnmsub { b, c });
     def_fn!(fmaddsub { b, c });
+    def_fn!(fmsubadd { b, c });
     make_swizz1!();
+
+    #[inline(always)]
+    pub fn len(self) -> vec {
+        self.dot(self).sqrt()
+    }
+
+    #[inline(always)]
+    pub fn norm(self) -> vec {
+        self / self.len()
+    }
+
+    #[inline(always)]
+    pub fn umask(x : u32, y : u32, z : u32, w : u32) -> vec {
+        #[target_feature(enable="fma")]
+        unsafe { vec::new_xmm(_mm_castsi128_ps(_mm_setr_epi32(x as _, y as _, z as _, w as _))) }
+    }
 }
 
 impl std::ops::Add for vec {
@@ -176,7 +207,48 @@ impl std::ops::BitOr for vec {
     fn bitor(self, r : vec) -> vec { self.or(r) }
 }
 
+
+impl std::ops::Add<f32> for vec {
+    type Output = vec;
+    #[inline(always)]
+    fn add(self, r : f32) -> vec { self.add(vec::newss(r)) }
+}
+impl std::ops::Sub<f32> for vec {
+    type Output = vec;
+    #[inline(always)]
+    fn sub(self, r : f32) -> vec { self.sub(vec::newss(r)) }
+}
+impl std::ops::Mul<f32> for vec {
+    type Output = vec;
+    #[inline(always)]
+    fn mul(self, r : f32) -> vec { self.mul(vec::newss(r)) }
+}
+impl std::ops::Div<f32> for vec {
+    type Output = vec;
+    #[inline(always)]
+    fn div(self, r : f32) -> vec { self.div(vec::newss(r)) }
+}
+
+impl std::ops::BitXor<f32> for vec {
+    type Output = vec;
+    #[inline(always)]
+    fn bitxor(self, r : f32) -> vec { self.xor(vec::newss(r)) }
+}
+
+impl std::ops::BitAnd<f32> for vec {
+    type Output = vec;
+    #[inline(always)]
+    fn bitand(self, r : f32) -> vec { self.and(vec::newss(r)) }
+}
+
+impl std::ops::BitOr<f32> for vec {
+    type Output = vec;
+    #[inline(always)]
+    fn bitor(self, r : f32) -> vec { self.or(vec::newss(r)) }
+}
+
 impl mat {
+    #[inline(always)]
     pub fn rotz(ang : f32) -> mat {
         let c = ang.cos();
         let s = ang.sin();
@@ -220,6 +292,23 @@ impl mat {
         mat(x, y, z, w)
     }
 
+    #[inline(always)]
+    pub fn axang(ax : vec, ang : f32) -> mat {
+        let mask1 : vec = vec::umask(0xffffffff, 0xffffffff, 0xffffffff, 0);
+        let mask2 : vec = vec::umask(0, 0, 0x80000000, 0);
+        let mask3 : vec = vec::umask(0x80000000, 0, 0, 0);
+        let ax = (ax & mask1).norm();
+        let c = vec::newss(ang.cos());
+        let s = ax * ang.sin();
+        let v = ax.fmadd(c, ax);
+        let s = blend!(s, c, 8);
+        let x = ax.xxxx().fmadd(v, s.wzyw() ^ mask2) & mask1;
+        let y = ax.yyyy().fmadd(v, s.zwxw() ^ mask3) & mask1;
+        let z = ax.zzzz().fmsubadd(v, s.yxww()) & mask1;
+        let w = vec::new(0., 0., 0., 1.);
+        mat(x, y, z, w)
+    }
+      
 }
 
 impl std::ops::Add for mat {
